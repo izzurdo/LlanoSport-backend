@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  nombre    String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Jugador {
+  id                  Int      @id @default(autoincrement())
+  nombre              String
+  segundo_nombre      String?  @default("")
+  apellido            String
+  segundo_apellido    String?  @default("")
+  fecha_nacimiento    DateTime
+  documento_identidad String   @unique
+  posicion            String
+  pie_dominante       String
+  genero              String
+  activo              Boolean  @default(true)
+
+  // Relaciones - NO poner onDelete aquí en el lado de la lista
+  estadisticas  EstadisticaPartidoJugador[]
+  lesiones      Lesion[]
+  convocatorias Convocatoria[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Partido {
+  id          Int      @id @default(autoincrement())
+  fecha       DateTime
+  hora        String
+  lugar       String
+  rival       String
+  competencia String
+  activo      Boolean  @default(true)
+  finalizado  Boolean  @default(false)
+
+  // Relaciones - NO poner onDelete aquí en el lado de la lista
+  estadisticasPartido EstadisticaPartido?
+  lesionesEnPartido   Lesion[]
+  convocados          Convocatoria[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Convocatoria {
+  id        Int @id @default(autoincrement())
+  partidoId Int
+  jugadorId Int
+
+  esTitular Boolean @default(false)
+  dorsal    Int?
+  asistio   Boolean @default(true)
+
+  // Relaciones con eliminación en cascada - SOLO aquí (lado de la referencia)
+  partido Partido @relation(fields: [partidoId], references: [id], onDelete: Cascade)
+  jugador Jugador @relation(fields: [jugadorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([partidoId, jugadorId])
+}
+
+model EstadisticaPartido {
+  id        Int     @id @default(autoincrement())
+  partidoId Int     @unique
+  partido   Partido @relation(fields: [partidoId], references: [id], onDelete: Cascade)
+
+  // Relación - NO poner onDelete aquí en el lado de la lista
+  jugadoresEstadisticas EstadisticaPartidoJugador[]
+
+  goles_a_favor      Int
+  goles_en_contra    Int
+  asistencias        Int
+  tarjetas_amarillas Int
+  tarjetas_rojas     Int
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model EstadisticaPartidoJugador {
+  id                   Int @id @default(autoincrement())
+  estadisticaPartidoId Int
+  jugadorId            Int
+
+  // Relaciones con eliminación en cascada - SOLO aquí (lado de la referencia)
+  jugador            Jugador            @relation(fields: [jugadorId], references: [id], onDelete: Cascade)
+  estadisticaPartido EstadisticaPartido @relation(fields: [estadisticaPartidoId], references: [id], onDelete: Cascade)
+  
+  goles              Int                @default(0)
+  asistencias        Int                @default(0)
+  minutosJugados     Int                @default(0)
+  tarjetaAmarilla    Int                @default(0)
+  tarjetaRoja        Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@unique([estadisticaPartidoId, jugadorId])
+}
+
+model Lesion {
+  id          Int     @id @default(autoincrement())
+  gravedad    String
+  descripcion String
+  estaActiva  Boolean @default(true)
+
+  jugadorId Int
+  // Relación con eliminación en cascada - SOLO aquí (lado de la referencia)
+  jugador   Jugador @relation(fields: [jugadorId], references: [id], onDelete: Cascade)
+
+  partidoId Int? 
+  // Relación con eliminación en cascada - SOLO aquí (lado de la referencia)
+  partido   Partido? @relation(fields: [partidoId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
